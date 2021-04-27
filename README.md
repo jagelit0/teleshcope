@@ -1,3 +1,3 @@
 # Telescope 🔭
 
-Simple homemade script for CTF scan automation
+Simple homemade script for CTF scans automation
