@@ -7,9 +7,16 @@ g='\e[1;32m'
 nc='\e[0m'
 
 #Vars
-opt=$2
-ip=$1
-usage=$(echo -e "$r" "[!] Usage: ./telescope.sh <IP> (options: -d|--default, -n|--no-ping)" "$nc")
+OPT=$2
+MACHINE=$1
+usage=$(echo -e "$r" "[!] Usage: ./telescope.sh <IP> (Options: -d|--default, -n|--no-ping, -h|--help)" "$nc")
+
+#Banner
+Banner(){
+        echo -e ""
+        echo -e "$y" "                 Looking through the telescope..." "$nc"
+        echo -e ""
+}
 
 #Check
 Check(){
@@ -17,7 +24,7 @@ if [ $(id -u) != 0 ]; then
 	echo -e "$r" "[!] Please, execute the script as sudo [!]" "$nc"
 	exit 1
 elif
-	[ -z "$ip" ] || [ -z "$opt" ]; then
+	[ -z "$MACHINE" ] || [ -z "$OPT" ]; then
 	echo "$usage"
 	exit 1
 fi
@@ -25,14 +32,14 @@ fi
 
 #TTL
 whichOS(){
-        ttl=$(ping -c 3 "$ip" | grep ttl | cut -d ' ' -f 6 | cut -d '=' -f2 | uniq)
+        ttl=$(ping -c 3 "$MACHINE" | grep ttl | cut -d ' ' -f 6 | cut -d '=' -f2 | uniq)
                 if [[ "$ttl" -ge 33 && "$ttl" -le 70 ]]; then
-                                echo -e "$g" "[*] O.S:" "$r""Linux" "$nc"
+                                echo -e "$g" "[*] O.S.:" "$r""Linux" "$nc"
                         elif [[ "$ttl" -ge 71 && "$ttl" -le 130 ]]; then
-                                echo -e "$g" "[*] O.S:" "$r""Windows" "$nc"
+                                echo -e "$g" "[*] O.S.:" "$r""Windows" "$nc"
                         elif [[ "$ttl" -ge 131 && "$ttl" -le 255 ]]; then
-                                echo -e "$g" "[*] O.S:" "$r""Other" "$nc"
-                        elif [ -z "$ttl" ];then
+                                echo -e "$g" "[*] O.S.:" "$r""Other" "$nc"
+                        elif [ -z "$ttl" ]; then
                                 echo -e "$r" "Can't reach the host" "$nc"
 				echo -e "$r" "Execute the script with -n|--no-ping" "$nc"
                 fi
@@ -40,59 +47,57 @@ whichOS(){
 
 #Scans
 doMagic(){
-mkdir scans && cd scans
-echo -e ""
-echo -e "$y" "                 Looking through the telescope..." "$nc"
-echo -e ""
-whichOS
-nmap -sT --min-rate 5000 -p- --open "$ip" -oG nmap.tmp &>/dev/null
-ports="$(cat nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > openports.tmp)"
-portsToScan=$(cat openports.tmp)
-nmap -sC -sV -T4 -p"$portsToScan" "$ip" -oN tcp_scan &>/dev/null
-checkPorts=$(cat tcp_scan | grep open | cut -d ' ' -f1,5 | sed 's/\/tcp/ /' | sed 's/^/     /' )
-echo -e "$g" "[+] Open ports:" "$nc""$r""\n$checkPorts" "$nc"
-echo -e "$y" "[*] Starting deep scans..." "$nc"
-nmap --script vuln* -sV -v -T4 -p"$portsToScan" "$ip" -oN full_tcp_scan &>/dev/null
-rm *.tmp
-echo -e "$g" "[!] All TCP scans completed, you can check the results!" "$nc"
-echo -e "$y" "[*] Running UDP scan..." "$nc"
-echo -e "$r" "    This may take a while... Be patient." "$nc"
-nmap -sV -sU -p- --open --min-rate 5000 "$ip" -oN udp_scan &>/dev/null
-echo -e "$g" "[+] All scans completed!" "$nc"
+    mkdir scans/
+    Banner
+    whichOS
+    nmap -sT --min-rate 5000 -p- --open "$MACHINE" -oG scans/nmap.tmp &>/dev/null
+    ports="$(cat scans/nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > scans/openports.tmp)"
+    portsToScan=$(cat scans/openports.tmp)
+    nmap -sC -sV -T4 -p"$portsToScan" "$MACHINE" -oN scans/tcp_scan &>/dev/null
+    checkPorts=$(cat scans/tcp_scan | grep "open" | awk '{print $1,$3}' | sed  's/\/tcp//' | sed -e 's/^/    -> /' )
+    echo -e "$g" "[+] Open ports:" "$nc""$r""\n$checkPorts" "$nc"
+    echo -e "$y" "[*] Starting deep scans..." "$nc"
+    nmap --script vuln* -sV -v -T5 -p"$portsToScan" "$MACHINE" -oN scans/full_tcp_scan &>/dev/null
+    rm scans/*.tmp
+    echo -e "$g" "[!] All TCP scans completed, you can check the results!" "$nc"
+    echo -e "$y" "[*] Running UDP scan..." "$nc"
+    echo -e "$r" "    This may take a while... Be patient." "$nc"
+    nmap -sV -sU --max-retries 1 --open "$MACHINE" -oN scans/udp_scan &>/dev/null
+    echo -e "$g" "[+] All scans completed!" "$nc"
 }
 
 #nmap_Pn
 nmap_Pn(){
-mkdir scans && cd scans
-echo -e ""
-echo -e "$y" "                 Looking through the telescope..." "$nc"
-echo -e ""
-nmap -sT -Pn --min-rate 5000 -p- --open "$ip" -oG nmap.tmp &>/dev/null
-ports="$(cat nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > openports.tmp)"
-portsToScan=$(cat openports.tmp)
-nmap -sC -sV -T4 -Pn -p"$portsToScan" "$ip" -oN tcp_scan &>/dev/null
-checkPorts=$(cat tcp_scan | grep open | cut -d ' ' -f1,5 | sed 's/\/tcp/ /' | sed 's/^/     /' )
-echo -e "$g" "[+] Open ports:" "$nc""$r""\n$checkPorts" "$nc"
-echo -e "$y" "[*] Starting deep scans..." "$nc"
-nmap --script vuln* -sV -v -Pn -T4 -p"$portsToScan" "$ip" -oN full_tcp_scan &>/dev/null
-rm *.tmp
-echo -e "$g" "[!] All TCP scans completed, you can check the results!" "$nc"
-echo -e "$y" "[*] Running UDP scan..." "$nc"
-echo -e "$r" "    This may take a while... Be patient." "$nc"
-nmap -Pn -sV -sU -n --min-rate 5000 "$ip" -oN udp_scan &>/dev/null
-echo -e "$g" "[+] All scans completed!" "$nc"
+    mkdir scans/
+    Banner
+    nmap -sT -Pn --min-rate 5000 -p- --open "$MACHINE" -oG scans/nmap.tmp &>/dev/null
+    ports="$(cat scans/nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > scans/openports.tmp)"
+    portsToScan=$(cat scans/openports.tmp)
+    nmap -sC -sV -T5 -Pn -p"$portsToScan" "$MACHINE" -oN scans/tcp_scan &>/dev/null
+    checkPorts=$(cat scans/tcp_scan | grep "open" | awk '{print $1,$3}' | sed  's/\/tcp//' | sed -e 's/^/     -> /' )
+    echo -e "$g" "[+] Open ports:" "$nc""$r""\n$checkPorts" "$nc"
+    echo -e "$y" "[*] Starting deep scans..." "$nc"
+    nmap --script vuln* -sV -v -Pn -T5 -p"$portsToScan" "$MACHINE" -oN scans/full_tcp_scan &>/dev/null
+    rm scans/*.tmp
+    echo -e "$g" "[!] All TCP scans completed, you can check the results!" "$nc"
+    echo -e "$y" "[*] Running UDP scan..." "$nc"
+    echo -e "$r" "    This may take a while... Be patient." "$nc"
+    nmap -Pn -sV -sU --max-retries 1 --open "$MACHINE" -oN scans/udp_scan &>/dev/null
+    echo -e "$g" "[+] All scans completed!" "$nc"
 }
 
 #Main
 Check
+while true; do
 case "$2" in
-	-n|--no-ping)
-	nmap_Pn
-	;;
-	-d|--default)
-	doMagic
-	;;
+        -n | --no-ping ) nmap_Pn; exit 0 ;;
+        -d | --default ) doMagic; exit 0 ;;
+        -h | --help ) echo -e $usage; exit 0 ;;
+        -- ) shift; break ;;
+        * )  echo -e "$r"" [!] Unrecognizable option!\n Options: -d|--default, -n|--no-ping, -h|--help" "$nc"; exit 1 ;;
 esac
+done
+
 echo -e "$g" "[+] The results have been saved in""$nc""$y" "/scans""$nc"
 
 exit 0
