@@ -9,12 +9,12 @@ nc='\e[0m'
 #Vars
 OPT=$2
 MACHINE=$1
-usage=$(echo -e "$r" "[!] Usage: ./telescope.sh <IP> (Options: -d|--default, -n|--no-ping, -h|--help)" "$nc")
+usage=$(echo -e "$r" "[!] Usage: ./teleshcope.sh <IP> (Options: -d|--default, -n|--no-ping, -h|--help)" "$nc")
 
 #Banner
 Banner(){
         echo -e ""
-        echo -e "$y" "                 Looking through the telescope..." "$nc"
+        echo -e "$y" "                 Looking through the teleshcope..." "$nc"
         echo -e ""
 }
 
@@ -47,42 +47,42 @@ whichOS(){
 
 #Scans
 doMagic(){
-    mkdir telescope_scans/
+    mkdir teleshcope_scans/
     Banner
     whichOS
-    nmap -sT --min-rate 5000 -p- --open "$MACHINE" -oG telescope_scans/nmap.tmp &>/dev/null
-    ports="$(cat telescope_scans/nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > telescope_scans/openports.tmp)"
-    portsToScan=$(cat telescope_scans/openports.tmp)
-    nmap -sC -sV -T4 -p"$portsToScan" "$MACHINE" -oN telescope_scans/tcp_scan &>/dev/null
-    checkPorts=$(cat telescope_scans/tcp_scan | grep "open" | awk '{print $1,$3}' | sed  's/\/tcp//' | sed -e 's/^/    -> /' )
+    nmap -sT --min-rate 5000 -p- --open "$MACHINE" -oG teleshcope_scans/nmap.tmp &>/dev/null
+    ports="$(cat teleshcope_scans/nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > teleshcope_scans/openports.tmp)"
+    portsToScan=$(cat teleshcope_scans/openports.tmp)
+    nmap -sC -sV -T4 -p"$portsToScan" "$MACHINE" -oN teleshcope_scans/tcp_scan &>/dev/null
+    checkPorts=$(cat teleshcope_scans/tcp_scan | grep "open" | awk '{print $1,$3}' | sed  's/\/tcp//' | sed -e 's/^/    -> /' )
     echo -e "$g" "[+] Open ports:" "$nc""$r""\n$checkPorts" "$nc"
     echo -e "$y" "[*] Starting deep scans..." "$nc"
-    nmap --script vuln* -sV -v -T5 -p"$portsToScan" "$MACHINE" -oN telescope_scans/full_tcp_scan &>/dev/null
-    rm telescope_scans/*.tmp
+    nmap --script vuln* -sV -v -T5 -p"$portsToScan" "$MACHINE" -oN teleshcope_scans/full_tcp_scan &>/dev/null
+    rm teleshcope_scans/*.tmp
     echo -e "$g" "[!] All TCP scans completed, you can check the results!" "$nc"
     echo -e "$y" "[*] Running UDP scan..." "$nc"
     echo -e "$r" "    This may take a while... Be patient." "$nc"
-    nmap -sVU --min-rate 5000 -T4 "$MACHINE" -oN telescope_scans/udp_scan &>/dev/null
+    nmap -sVU --min-rate 5000 -T4 "$MACHINE" -oN teleshcope_scans/udp_scan &>/dev/null
     echo -e "$g" "[+] All scans completed!" "$nc"
 }
 
 #nmap_Pn
 nmap_Pn(){
-    mkdir telescope_scans/
+    mkdir teleshcope_scans/
     Banner
-    nmap -sT -Pn --min-rate 5000 -p- --open "$MACHINE" -oG telescope_scans/nmap.tmp &>/dev/null
-    ports="$(cat telescope_scans/nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > telescope_scans/openports.tmp)"
+    nmap -sT -Pn --min-rate 5000 -p- --open "$MACHINE" -oG teleshcope_scans/nmap.tmp &>/dev/null
+    ports="$(cat teleshcope_scans/nmap.tmp | grep -oP '\d{1,5}/open' | awk '{print $1}' FS='/' | xargs | tr ' ' ',' > teleshcope_scans/openports.tmp)"
     portsToScan=$(cat scans/openports.tmp)
-    nmap -sC -sV -T5 -Pn -p"$portsToScan" "$MACHINE" -oN telescope_scans/tcp_scan &>/dev/null
-    checkPorts=$(cat telescope_scans/tcp_scan | grep "open" | awk '{print $1,$3}' | sed  's/\/tcp//' | sed -e 's/^/     -> /' )
+    nmap -sC -sV -T5 -Pn -p"$portsToScan" "$MACHINE" -oN teleshcope_scans/tcp_scan &>/dev/null
+    checkPorts=$(cat teleshcope_scans/tcp_scan | grep "open" | awk '{print $1,$3}' | sed  's/\/tcp//' | sed -e 's/^/     -> /' )
     echo -e "$g" "[+] Open ports:" "$nc""$r""\n$checkPorts" "$nc"
     echo -e "$y" "[*] Starting deep scans..." "$nc"
-    nmap --script vuln* -sV -v -Pn -T5 -p"$portsToScan" "$MACHINE" -oN telescope_scans/full_tcp_scan &>/dev/null
-    rm telescope_scans/*.tmp
+    nmap --script vuln* -sV -v -Pn -T5 -p"$portsToScan" "$MACHINE" -oN teleshcope_scans/full_tcp_scan &>/dev/null
+    rm teleshcope_scans/*.tmp
     echo -e "$g" "[!] All TCP scans completed, you can check the results!" "$nc"
     echo -e "$y" "[*] Running UDP scan..." "$nc"
     echo -e "$r" "    This may take a while... Be patient." "$nc"
-    nmap -Pn -sVU --min-rate 5000 -T4 "$MACHINE" -oN telescope_scans/udp_scan &>/dev/null
+    nmap -Pn -sVU --min-rate 5000 -T4 "$MACHINE" -oN teleshcope_scans/udp_scan &>/dev/null
     echo -e "$g" "[+] All scans completed!" "$nc"
 }
 
@@ -98,6 +98,6 @@ case "$2" in
 esac
 done
 
-echo -e "$g" "[+] The results have been saved in""$nc""$y" "/telescope_scans""$nc"
+echo -e "$g" "[+] The results have been saved in""$nc""$y" "/teleshcope_scans""$nc"
 
 exit 0
